@@ -5,6 +5,7 @@ from pwd import getpwnam
 from sys import exit, stderr
 import shutil
 import os
+import magic
 
 def executeCommand(description, command):
     """Executes command given and exits if error is encountered"""
@@ -35,10 +36,22 @@ mounts = []
 for line in out.split('\n'):
     mounts.append(line.split(' ')[0])
 
-if '/dev/sdc1' in mounts:
-    executeCommand('unmounting drive to be formated...', 'umount /dev/sdc1')
+if '/dev/sdb1' in mounts:
+    executeCommand('unmounting drive to be formated...', 'umount /dev/sdb1')
 
-executeCommand('formatting partition as fat32...', 'mkfs.fat -F32 -I /dev/sdc1')
+executeCommand('formatting partition as fat32...', 'mkfs.fat -F32 -I /dev/sdb1')
+executeCommand('mouting /dev/sdb1 to /mnt/lexar...', 'mount /dev/sdb1 /mnt/lexar')
+
 print('copying files...', end='')
-shutil.copytree('/mnt/iso/', '/mnt/test')
+isoMount = '/mnt/iso/'
+target = '/mnt/lexar/'
+for i in os.listdir(isoMount):
+    isoEntry = isoMount + i
+    targetEntry = target + i
+    if os.path.isdir(isoEntry):
+        shutil.copytree(isoEntry, targetEntry)
+    elif os.path.isfile(isoEntry):
+        shutil.copy2(isoEntry, target)
 print('done')
+
+executeCommand('unmounting /dev/sdb1...', 'umount /dev/sdb1')
