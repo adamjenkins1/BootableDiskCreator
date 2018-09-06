@@ -5,7 +5,6 @@ from pwd import getpwnam
 from sys import exit, stderr
 import shutil
 import os
-import magic
 
 def executeCommand(description, command):
     """Executes command given and exits if error is encountered"""
