@@ -35,6 +35,58 @@ def executeCommand(description, command):
     print('done')
     return out
 
+def validateInput(iso, device):
+    """Validates user input and if input is correct, takes appropriate action"""
+    # check if image file provided exists
+    if not os.path.isfile(iso):
+        sysexit('Error: image \'{0}\' does not exist'.format(iso))
+
+    # get list of partitions
+    out = executeCommand('getting available partitions...',
+                         'lsblk -l | awk \'{if($6 == "part") {print $1","$7}}\'')
+
+    # creates dictionary of partitions and their mount points (ex {'/dev/sdb1':'/mnt/target'})
+    # if mount point is '', then partition is not mounted
+    devices = {}
+    for line in out.split('\n'):
+        parts = line.split(',')
+        devices[('/dev/' + parts[0])] = parts[1]
+
+    # check if partition exists
+    if device not in devices.keys():
+        sysexit('Error: partition \'{0}\' does not exist'.format(device))
+
+    # check if partition is mounted as something important
+    if devices[device] == '/' or '/boot' in devices[device]:
+        sysexit('Error: partition \'{0}\' currently mounted as \'{1}\''
+                .format(device, devices[device]))
+
+    # check if user provided partition on same disk as OS and warn them
+    OSDisk = False
+    choice = ''
+    for key, value in devices.items():
+        if device[:-1] in key and (value == '/' or '/boot' in value):
+            OSDisk = True
+
+    if OSDisk:
+        print(('Warning: it looks like the given partition is on the same disk as your OS.\n'
+               'This utility is designed to create REMOVABLE install media, but will'
+               ' format any\npartition if it is available. However, creating bootable install'
+               ' media using a\npartition on your primary disk is not recommended.'
+               '\nDo you wish to continue? [yes/No]'), end=' ')
+        choice = input()
+        while choice.lower() != 'yes' and choice.lower() != 'no':
+            print(('Unrecognized choice. '
+                   'Please type \'yes\' to continue or \'no\' to exit. [yes/No]'), end=' ')
+            choice = input()
+
+        if choice.lower() != 'yes':
+            sysexit(0)
+
+    # if device is mounted, unmount it
+    if devices[device] != '':
+        executeCommand('unmounting drive to be formated...', 'umount {0}'.format(device))
+
 def main():
     """Reads command line arguments, mounts image, and copies image files to given partition"""
     # check if script was executed with root privilages
@@ -64,30 +116,8 @@ def main():
     if args.device_mount:
         target = args.device_mount
 
-    # check if image file provided exists
-    if not os.path.isfile(iso):
-        sysexit('Error: image \'{0}\' does not exist'.format(iso))
-
-    # get list of partitions
-    out = executeCommand('getting available partitions...',
-                         'lsblk -l | awk \'{if($6 == "part") {print $1","$7}}\'')
-
-    # creates dictionary of partitions and their mount points (ex {'/dev/sdb1':'/mnt/target'})
-    # if mount point is '', then partition is not mounted
-    # TODO: check if partition provided is on the same disk as the OS and warn user
-    # TODO: check if partition provided is mounted as / or /boot
-    devices = {}
-    for line in out.split('\n'):
-        parts = line.split(',')
-        devices[('/dev/' + parts[0])] = parts[1]
-
-    # check if partition exists
-    if device not in devices.keys():
-        sysexit('Error: partition \'{0}\' does not exist'.format(args.device))
-
-    # if device is mounted, unmount it
-    if devices[device] != '':
-        executeCommand('unmounting drive to be formated...', 'umount {0}'.format(device))
+    # validates user input
+    validateInput(iso, device)
 
     # if mount point does not exist, make it
     for mountPoint in [isoMount, target]:
