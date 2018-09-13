@@ -143,7 +143,9 @@ def main():
     for entry in os.listdir(isoMount):
         isoEntry = isoMount + entry
         targetEntry = target + entry
-        if os.path.isdir(isoEntry):
+        if os.path.islink(isoEntry):
+            continue
+        elif os.path.isdir(isoEntry):
             shutil.copytree(isoEntry, targetEntry)
         elif os.path.isfile(isoEntry):
             shutil.copy2(isoEntry, target)
