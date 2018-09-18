@@ -14,10 +14,10 @@ Python Version: 3.6.5
 
 from subprocess import Popen, PIPE
 from getpass import getuser
-from pwd import getpwnam
 from sys import exit as sysexit, stderr, stdout
 import shutil
 import os
+import pwd
 
 class BootableDiskCreator:
     """class that contains variables and methods to create a bootable drive"""
@@ -144,7 +144,7 @@ class BootableDiskCreator:
     def main(self, args):
         """Reads command line arguments, mounts image, and copies image files to given partition"""
         # check if script was executed with root privilages
-        if getpwnam(getuser()).pw_uid != 0:
+        if pwd.getpwnam(getuser()).pw_uid != 0:
             sysexit('Error: must run as root')
 
         device = args.device

@@ -42,3 +42,7 @@ ENV/
 
 # swap files
 *.swp
+
+# pytest files
+.coverage
+.pytest_cache/
