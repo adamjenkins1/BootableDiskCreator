@@ -33,6 +33,14 @@ class BootableDiskCreatorTests(TestCase):
         self.assertEqual(err.exception.code, 'Error: must run as root')
 
     @mock.patch('pwd.getpwnam')
+    def test_bad_image(self, mockPwd):
+        """tests if the provided image exists"""
+        mockPwd.return_value = MagicMock(pw_uid=0)
+        with self.assertRaises(SystemExit) as err:
+            self.obj.main(MagicMock(device='/dev/sdb1', image='image.asdf'))
+        self.assertEqual(err.exception.code, 'Error: \'image.asdf\' is not an ISO image')
+
+    @mock.patch('pwd.getpwnam')
     def test_image_exists(self, mockPwd):
         """tests if the provided image exists"""
         mockPwd.return_value = MagicMock(pw_uid=0)

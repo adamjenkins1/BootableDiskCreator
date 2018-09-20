@@ -91,6 +91,10 @@ class BootableDiskCreator:
 
     def validateInput(self, iso, device):
         """Validates user input and if input is correct, takes appropriate action"""
+        # check if file provided has .iso extension
+        if iso.split('.')[-1] != 'iso':
+            sysexit('Error: \'{0}\' is not an ISO image'.format(iso))
+
         # check if image file provided exists
         if not os.path.isfile(iso):
             sysexit('Error: image \'{0}\' does not exist'.format(iso))
