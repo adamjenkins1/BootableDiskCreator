@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-from tkinter import *
-from tkinter import filedialog
+from tkinter import Tk, Frame, Button, Entry, Label, StringVar, TclError, W, NSEW, filedialog, Message
 from pathlib import Path
 
 class GUI(Frame):
-    canvas = object()
     parent = object()
     iso = ''
     partition = ''
@@ -16,10 +14,17 @@ class GUI(Frame):
         self.iso = ''
         self.partition = ''
         self.parent.title('Bootable Disk Creator GUI')
-        Button(self.parent, text='select ISO', command=self.selectISO).pack(padx=5, pady=5, expand=1)
         self.isoDisplay = StringVar()
-        Entry(self.parent, textvariable=self.isoDisplay).pack()
-        self.isoDisplay.set('default value')
+        self.isoDisplay.set('click "browse" to select the desired ISO image')
+
+        # create wigits
+        Button(self.parent, text='Browse', command=self.selectISO).grid(row=1, column=1, sticky=W)
+        Entry(self.parent, textvariable=self.isoDisplay, state='readonly', width=65).grid(row=1, column=0, padx=20, sticky=W)
+        Message(self.parent, width=300, text=('Here\'s how to use this application:\n1. Select '
+                                              'your ISO image\n2.Select the partition to be used\n'
+                                              '3. Click "Go" and we\'ll handle the rest')
+                                              ).grid(row=0, column=0, padx=20, ipady=20, sticky=W)
+
 
         # call a dummy dialog with an impossible option to initialize the file
         # dialog without really getting a dialog window; this will throw a TclError
@@ -30,20 +35,17 @@ class GUI(Frame):
         self.parent.tk.call('set', '::tk::dialog::file::showHiddenBtn', '1')
         self.parent.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
 
-        self.pack(fill=BOTH, expand=1)
-        self.canvas = Canvas(self)
+        self.grid(row=1, column=0, columnspan=3, sticky=NSEW)
 
     def selectISO(self):
         self.iso = filedialog.askopenfilename(initialdir = str(Path.home()),
                 title = 'Select ISO image', 
                 filetypes = (('ISO files', '*.iso'), ('all files', '*.*')))
 
-        if str(self.iso) == '()':
-            self.iso = ''
+        if str(self.iso) == '()' or self.iso == '':
+            self.iso = 'click "browse" to select the desired ISO image'
 
         self.isoDisplay.set(self.iso)
-        print('iso = {0}'.format(self.iso))
-
 
 def main():
     root = Tk()
