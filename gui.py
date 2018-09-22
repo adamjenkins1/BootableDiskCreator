@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-from tkinter import Tk, Frame, Button, Entry, Label, StringVar, TclError, W, NSEW, filedialog, Message
+from tkinter import (Tk, Frame, Button, Entry, Label, StringVar, 
+        TclError, W, NSEW, filedialog, Message)
 from pathlib import Path
+from bootableDiskCreator import BootableDiskCreator
+import sys
+import os
 
 class GUI(Frame):
     parent = object()
     iso = ''
     partition = ''
     isoDisplay = object()
+    bdc = object()
 
     def __init__(self, parent):
         Frame.__init__(self, parent)
+        self.bdc = BootableDiskCreator()
         self.parent = parent
         self.iso = ''
         self.partition = ''
@@ -46,6 +52,17 @@ class GUI(Frame):
             self.iso = 'click "browse" to select the desired ISO image'
 
         self.isoDisplay.set(self.iso)
+
+        self.suppressStdout()
+        partitions = self.bdc.getAvailablePartitions()
+        self.enableStdout()
+        print(partitions)
+
+    def suppressStdout(self):
+        sys.stdout = open(os.devnull, 'w')
+
+    def enableStdout(self):
+        sys.stdout = sys.__stdout__
 
 def main():
     root = Tk()

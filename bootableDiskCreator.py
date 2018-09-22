@@ -89,16 +89,8 @@ class BootableDiskCreator:
         print('done')
         return out
 
-    def validateInput(self, iso, device):
-        """Validates user input and if input is correct, takes appropriate action"""
-        # check if file provided has .iso extension
-        if iso.split('.')[-1] != 'iso':
-            sysexit('Error: \'{0}\' is not an ISO image'.format(iso))
-
-        # check if image file provided exists
-        if not os.path.isfile(iso):
-            sysexit('Error: image \'{0}\' does not exist'.format(iso))
-
+    def getAvailablePartitions(self):
+        """Creates and returns dictionary of partitions and their mountpoints"""
         # get list of partitions
         out = self.executeCommand('getting available partitions...',
                                   'lsblk -l | awk \'{if($6 == "part") {print $1","$7}}\'')
@@ -109,6 +101,20 @@ class BootableDiskCreator:
         for line in out.split('\n'):
             parts = line.split(',')
             devices[('/dev/' + parts[0])] = parts[1]
+
+        return devices
+
+    def validateInput(self, iso, device):
+        """Validates user input and if input is correct, takes appropriate action"""
+        # check if file provided has .iso extension
+        if iso.split('.')[-1] != 'iso':
+            sysexit('Error: \'{0}\' is not an ISO image'.format(iso))
+
+        # check if image file provided exists
+        if not os.path.isfile(iso):
+            sysexit('Error: image \'{0}\' does not exist'.format(iso))
+
+        devices = self.getAvailablePartitions()
 
         # check if partition exists
         if device not in devices.keys():
