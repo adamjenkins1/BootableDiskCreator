@@ -6,6 +6,9 @@ from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
 import sys
 import os
+import io
+import contextlib
+from argparse import Namespace
 
 class GUI(Frame):
     parent = object()
@@ -76,8 +79,15 @@ class GUI(Frame):
                                                format(self.selectedPartition.get()))
                                                ).grid(row=0, column=0, padx=20, ipady=20, sticky=W)
 
-        Button(confirmation, text='I understand', command=confirmation.destroy).grid(row=1, column=0, pady=(0, 20), padx=(20, 0))
-        Button(confirmation, text='Get me outta here!', command=confirmation.destroy).grid(row=1, column=1)
+        Button(confirmation, text='I understand', command=lambda: self.executeBDC(confirmation)).grid(row=1, column=0, pady=(0, 20), padx=(90, 0), sticky=W)
+        Button(confirmation, text='Get me outta here!', command=confirmation.destroy).grid(row=1, column=0, pady=(0, 20), padx=(220, 0), sticky=W)
+
+    def executeBDC(self, popup):
+        popup.destroy()
+        progress = Toplevel()
+        Message(progress, width=400).grid(row=0, column=0)
+        self.bdc.main(Namespace(device=self.selectedPartition.get(), image=self.iso, image_mount=None, device_mount=None))
+
 
     def clearPartitionMenu(self):
         self.partitionMenu.children['menu'].delete(0, 'end')
