@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from tkinter import (Tk, Frame, Button, Entry, Label, StringVar, 
-        TclError, W, E, NSEW, SE, filedialog, Message, OptionMenu)
+        TclError, W, E, NSEW, SE, filedialog, Message, OptionMenu, font, Toplevel)
+from tkinter.messagebox import showinfo
 from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
 import sys
@@ -32,7 +33,7 @@ class GUI(Frame):
         # create wigits
         Message(self.parent, width=300, text=('Here\'s how to use this application:\n1. Select '
                                               'your ISO image\n2. Select the partition to be used\n'
-                                              '3. Click "Go" and we\'ll handle the rest')
+                                              '3. Click "Go!" and we\'ll handle the rest')
                                               ).grid(row=0, column=0, padx=20, ipady=20, sticky=W)
         Button(self.parent, text='Browse', command=self.selectISO).grid(row=1, column=1, sticky=W)
         Entry(self.parent, textvariable=self.isoDisplay, state='readonly', width=65).grid(row=1, column=0, padx=20, sticky=W)
@@ -46,6 +47,7 @@ class GUI(Frame):
         # with extra padding. otherwise, it is aligned to the browse button, 
         # which isn't what I want
         Button(self.parent, text='Refresh Partitions', command=self.refreshPartitions).grid(row=3, column=0, padx=(150, 0), sticky=W)
+        Button(self.parent, text='Go!', command=self.showConfirmation, font=font.Font(weight='bold')).grid(row=4, column=1, pady=40, sticky=W)
 
 
         # call a dummy dialog with an impossible option to initialize the file
@@ -58,6 +60,24 @@ class GUI(Frame):
         self.parent.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
 
         self.grid(row=1, column=0, columnspan=3, sticky=NSEW)
+
+    def showConfirmation(self):
+        if self.iso == 'click "browse" to select the desired ISO image' or self.selectedPartition.get() == '':
+            showinfo('Error', 'You must first select an ISO image AND partition before continuing')
+            return
+
+        confirmation = Toplevel()
+        confirmation.title('Are you sure?')
+        Message(confirmation, width=400, text=('Warning: this program will format {0} as FAT32 '
+                                               'and copy your selected ISO image onto that '
+                                               'partition. This means that any data on {0} will '
+                                               'be PERMANENTLY lost. '
+                                               'Continue at your own risk.'.
+                                               format(self.selectedPartition.get()))
+                                               ).grid(row=0, column=0, padx=20, ipady=20, sticky=W)
+
+        Button(confirmation, text='I understand', command=confirmation.destroy).grid(row=1, column=0, pady=(0, 20), padx=(20, 0))
+        Button(confirmation, text='Get me outta here!', command=confirmation.destroy).grid(row=1, column=1)
 
     def clearPartitionMenu(self):
         self.partitionMenu.children['menu'].delete(0, 'end')
@@ -77,8 +97,6 @@ class GUI(Frame):
             self.partitionMenu = OptionMenu(self.parent, self.selectedPartition, *choices)
             self.partitionMenu.grid(row=3, column=0, padx=20, sticky=W)
 
-        print(self.partitions)
-
     def selectISO(self):
         self.iso = filedialog.askopenfilename(initialdir = str(Path.home()),
                 title = 'Select ISO image', 
@@ -90,8 +108,6 @@ class GUI(Frame):
 
         self.isoDisplay.set(self.iso)
         self.refreshPartitions()
-
-        print(self.partitions)
 
     def getAvailablePartitions(self):
         self.suppressStdout()
@@ -113,10 +129,11 @@ class GUI(Frame):
     def enableStdout(self):
         sys.stdout = sys.__stdout__
 
+
 def main():
     root = Tk()
     g = GUI(root)
-    root.geometry('660x560')
+    root.geometry('660x330')
     root.mainloop()
 
 if __name__ == '__main__':
