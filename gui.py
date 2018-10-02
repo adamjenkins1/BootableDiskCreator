@@ -4,11 +4,11 @@ from tkinter import (Tk, Frame, Button, Entry, Label, StringVar,
 from tkinter.messagebox import showinfo
 from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
+from argparse import Namespace
 import sys
 import os
 import io
 import contextlib
-from argparse import Namespace
 
 class GUI(Frame):
     parent = object()
@@ -63,6 +63,14 @@ class GUI(Frame):
         self.parent.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
 
         self.grid(row=1, column=0, columnspan=3, sticky=NSEW)
+        self.checkRoot()
+
+    def checkRoot(self):
+        try:
+            self.bdc.checkRoot()
+        except SystemExit as e:
+            showinfo('Error', e)
+            sys.exit(1)
 
     def showConfirmation(self):
         if self.iso == 'click "browse" to select the desired ISO image' or self.selectedPartition.get() == '':
@@ -85,7 +93,7 @@ class GUI(Frame):
     def executeBDC(self, popup):
         popup.destroy()
         progress = Toplevel()
-        Message(progress, width=400).grid(row=0, column=0)
+        Message(progress, width=400, text='This is a message').grid(row=0, column=0)
         self.bdc.main(Namespace(device=self.selectedPartition.get(), image=self.iso, image_mount=None, device_mount=None))
 
 

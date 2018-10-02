@@ -151,11 +151,14 @@ class BootableDiskCreator:
         if devices[device] != '':
             self.executeCommand('unmounting drive to be formated...', 'umount {0}'.format(device))
 
+    def checkRoot(self):
+        if pwd.getpwnam(getuser()).pw_uid != 0:
+            sysexit('Error: must run as root')
+
     def main(self, args):
         """Reads command line arguments, mounts image, and copies image files to given partition"""
         # check if script was executed with root privilages
-        if pwd.getpwnam(getuser()).pw_uid != 0:
-            sysexit('Error: must run as root')
+        self.checkRoot()
 
         device = args.device
         iso = args.image
