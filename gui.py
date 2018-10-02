@@ -5,10 +5,11 @@ from tkinter.messagebox import showinfo
 from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
 from argparse import Namespace
+from io import StringIO
 import sys
 import os
-import io
 import contextlib
+import threading
 
 class GUI(Frame):
     parent = object()
@@ -93,9 +94,16 @@ class GUI(Frame):
     def executeBDC(self, popup):
         popup.destroy()
         progress = Toplevel()
-        Message(progress, width=400, text='This is a message').grid(row=0, column=0)
-        self.bdc.main(Namespace(device=self.selectedPartition.get(), image=self.iso, image_mount=None, device_mount=None))
+        log = StringVar()
+        log.set('blank log')
+        Message(progress, width=400, textvariable=log).grid(row=0, column=0)
+        self.parent.after(1000, lambda: self.callBDCMain(log))
 
+    def callBDCMain(self, log):
+        output = StringIO()
+        with contextlib.redirect_stdout(output):
+            self.bdc.main(Namespace(device=self.selectedPartition.get(), image=self.iso, image_mount=None, device_mount=None))
+            log.set(output.getvalue())
 
     def clearPartitionMenu(self):
         self.partitionMenu.children['menu'].delete(0, 'end')
