@@ -25,6 +25,18 @@ class GUI(QtWidgets.QMainWindow):
 
         self.setupUI()
         self.retranslateUI()
+        self.checkRoot()
+
+    def checkRoot(self):
+        try:
+            self.bdc.checkRoot()
+        except SystemExit:
+            mb = QtWidgets.QMessageBox()
+            mb.setIcon(QtWidgets.QMessageBox.Critical)
+            mb.setWindowTitle('Error')
+            mb.setText('You must run this application as root')
+            mb.exec()
+            sys.exit(1)
 
     def setupUI(self):
         self.setObjectName('MainWindow')
@@ -60,6 +72,7 @@ class GUI(QtWidgets.QMainWindow):
         font.setWeight(75)
         self.goButton.setFont(font)
         self.goButton.setObjectName('goButton')
+        self.goButton.clicked.connect(self.checkRoot)
 
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)
