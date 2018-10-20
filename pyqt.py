@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from PyQt5 import QtCore, QtGui, QtWidgets
 from pathlib import Path
+from bootableDiskCreator import BootableDiskCreator
 import sys
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
+        self.bdc = BootableDiskCreator()
         self.setObjectName('MainWindow')
         self.resize(660, 330)
         self.centralwidget = QtWidgets.QWidget(self)
@@ -14,6 +16,8 @@ class GUI(QtWidgets.QMainWindow):
         self.instructions = QtWidgets.QLabel(self.centralwidget)
         self.instructions.setGeometry(QtCore.QRect(10, 10, 261, 71))
         self.instructions.setObjectName('instructions')
+
+        self.iso = ''
 
         self.browseButton = QtWidgets.QPushButton(self.centralwidget)
         self.browseButton.setGeometry(QtCore.QRect(560, 110, 89, 25))
@@ -57,10 +61,11 @@ class GUI(QtWidgets.QMainWindow):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Select ISO Image', str(Path.home()), 'ISO files (*.iso);;All Files (*)', options=options)[0]
 
         if filename:
-            print(filename)
-            self.isoBox.setText(filename)
+            self.iso = filename
+            self.isoBox.setText(self.iso)
         else:
-            self.isoBox.setText('click \'browse\' to select the desired ISO image')
+            self.iso = 'click \'browse\' to select the desired ISO image'
+            self.isoBox.setText(self.iso)
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
