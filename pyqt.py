@@ -3,9 +3,27 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
 from io import StringIO
+from argparse import Namespace
 import sys
 import contextlib
 import os
+
+class BDCThread(QtCore.QThread):
+    def __init__(self, bdc, selectedPartition, iso, parent=None):
+        QtCore.QThread.__init__(self, parent)
+        self.bdc = bdc
+        self.selectedPartition = selectedPartition
+        self.iso = iso
+        self.threadSig = QtCore.pyqtSignal(str)
+
+    def run(self):
+        self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
+        '''
+        out = StringIO()
+        with contextlib.redirect_stdout(out):
+            self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
+            self.threadSig.emit(out.getvalue())
+        '''
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self):
@@ -22,10 +40,25 @@ class GUI(QtWidgets.QMainWindow):
         self.partitionsInstructions = QtWidgets.QLabel(self.centralwidget)
         self.refreshPartitionsButton = QtWidgets.QPushButton(self.centralwidget)
         self.goButton = QtWidgets.QPushButton(self.centralwidget)
+        self.guiSig = QtCore.pyqtSignal(str)
+        self.bdcThread = object()
 
         self.setupUI()
         self.retranslateUI()
         self.checkRoot()
+
+    def displayConfirmation(self):
+        confirmationText = ('Warning: this program will format {0} as FAT32 '
+                            'and copy your selected ISO image onto that '
+                            'partition. This means that any data on \n{0} will '
+                            'be PERMANENTLY lost. '
+                            'Are you sure you want to continue?'.format(self.selectedPartition))
+        
+        response = QtWidgets.QMessageBox.question(self, 'Are you sure?', confirmationText, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+
+        if response == QtWidgets.QMessageBox.Yes:
+            self.bdcThread = BDCThread(self.bdc, self.selectedPartition, self.iso)
+            self.bdcThread.start()
 
     def checkRoot(self):
         try:
@@ -72,12 +105,13 @@ class GUI(QtWidgets.QMainWindow):
         font.setWeight(75)
         self.goButton.setFont(font)
         self.goButton.setObjectName('goButton')
-        self.goButton.clicked.connect(self.checkRoot)
+        self.goButton.clicked.connect(self.displayConfirmation)
 
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     
+
     def partitionsDropDownActivated(self, text):
         self.selectedPartition = text
 
