@@ -40,7 +40,6 @@ class GUI(QtWidgets.QMainWindow):
         self.partitionsInstructions = QtWidgets.QLabel(self.centralwidget)
         self.refreshPartitionsButton = QtWidgets.QPushButton(self.centralwidget)
         self.goButton = QtWidgets.QPushButton(self.centralwidget)
-        self.guiSig = QtCore.pyqtSignal(str)
         self.bdcThread = object()
         self.critMessageBox = QtWidgets.QMessageBox()
 
