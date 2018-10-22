@@ -42,12 +42,21 @@ class GUI(QtWidgets.QMainWindow):
         self.goButton = QtWidgets.QPushButton(self.centralwidget)
         self.guiSig = QtCore.pyqtSignal(str)
         self.bdcThread = object()
+        self.critMessageBox = QtWidgets.QMessageBox()
 
         self.setupUI()
         self.retranslateUI()
         self.checkRoot()
 
+    def validISO(self):
+        return not self.iso != 'click "browse" to select the desired ISO image'
+
     def displayConfirmation(self):
+        if not self.validISO() or self.selectedPartition == '':
+            self.critMessageBox.setText('You must select an ISO image AND partition before continuing')
+            self.critMessageBox.exec()
+            return
+
         confirmationText = ('Warning: this program will format {0} as FAT32 '
                             'and copy your selected ISO image onto that '
                             'partition. This means that any data on \n{0} will '
@@ -64,11 +73,8 @@ class GUI(QtWidgets.QMainWindow):
         try:
             self.bdc.checkRoot()
         except SystemExit:
-            mb = QtWidgets.QMessageBox()
-            mb.setIcon(QtWidgets.QMessageBox.Critical)
-            mb.setWindowTitle('Error')
-            mb.setText('You must run this application as root')
-            mb.exec()
+            self.critMessageBox.setText('You must run this application as root')
+            self.critMessageBox.exec()
             sys.exit(1)
 
     def setupUI(self):
@@ -107,6 +113,9 @@ class GUI(QtWidgets.QMainWindow):
         self.goButton.setObjectName('goButton')
         self.goButton.clicked.connect(self.displayConfirmation)
 
+        self.critMessageBox.setIcon(QtWidgets.QMessageBox.Critical)
+        self.critMessageBox.setWindowTitle('Error')
+
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)
 
@@ -130,7 +139,7 @@ class GUI(QtWidgets.QMainWindow):
         self.refreshPartitions()
 
     def refreshPartitions(self):
-        if self.iso == 'click "browse" to select the desired ISO image':
+        if not self.validISO():
             return 
 
         self.partitions = self.getAvailablePartitions()
