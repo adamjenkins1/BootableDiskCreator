@@ -4,6 +4,8 @@ from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
 from io import StringIO
 from argparse import Namespace
+from time import sleep
+from threading import Lock
 import sys
 import contextlib
 import os
@@ -14,16 +16,36 @@ class BDCThread(QtCore.QThread):
         self.bdc = bdc
         self.selectedPartition = selectedPartition
         self.iso = iso
-        self.threadSig = QtCore.pyqtSignal(str)
+        self.running = False
+        self.buffer = ''
+        self.mutex = Lock()
+
+    def isRunning(self):
+        ret = False
+        self.mutex.acquire()
+        ret = self.running
+        self.mutex.release()
+        return ret
+
+    def getBuffer(self):
+        ret = ''
+        self.mutex.acquire()
+        ret = self.buffer
+        self.mutex.release()
+        return ret
 
     def run(self):
-        self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
-        '''
-        out = StringIO()
-        with contextlib.redirect_stdout(out):
+        self.mutex.acquire()
+        if not self.running:
             self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
-            self.threadSig.emit(out.getvalue())
-        '''
+            self.running = True
+
+        self.buffer = self.bdc.buffer.read()
+        if self.bdc.done:
+            self.running = False
+
+        self.mutex.release()
+        sleep(0.01)
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self):
@@ -48,6 +70,8 @@ class GUI(QtWidgets.QMainWindow):
         self.checkRoot()
 
     def displayConfirmation(self):
+        # TODO: add condition to check if partition and iso were selected
+        # TODO: check drive size and iso size
         confirmationText = ('Warning: this program will format {0} as FAT32 '
                             'and copy your selected ISO image onto that '
                             'partition. This means that any data on \n{0} will '
@@ -59,6 +83,15 @@ class GUI(QtWidgets.QMainWindow):
         if response == QtWidgets.QMessageBox.Yes:
             self.bdcThread = BDCThread(self.bdc, self.selectedPartition, self.iso)
             self.bdcThread.start()
+
+            while(not self.bdcThread.isRunning()):
+                print('waiting for bdcThread...')
+                sleep(0.5)
+
+            while(self.bdcThread.isRunning()):
+                print('on main thread!')
+                print(self.bdcThread.getBuffer())
+                sleep(0.5)
 
     def checkRoot(self):
         try:
@@ -109,8 +142,6 @@ class GUI(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)
-
-    
 
     def partitionsDropDownActivated(self, text):
         self.selectedPartition = text

@@ -19,25 +19,35 @@ import shutil
 import os
 import pwd
 
+class StringBuffer:
+    def __init__(self):
+        self.string = ''
+
+    def write(self, string):
+        self.string += string
+
+    def read(self):
+        ret = self.string
+        self.string = ''
+        return ret
+
 class BootableDiskCreator:
     """class that contains variables and methods to create a bootable drive"""
-    totalBytes = 0
-    totalBytesWritten = 0
-    isoMount = '/mnt/iso/'
-    target = '/mnt/target/'
-
     def __init__(self):
         """initializes member variables to default values"""
         self.totalBytes = 0
         self.totalBytesWritten = 0
         self.isoMount = '/mnt/iso/'
         self.target = '/mnt/target/'
+        self.buffer = StringBuffer()
+        self.copyProgress = 0.0
+        self.done = False
 
     def progressCallback(self, bytesWritten):
         """prints percentange of image that has successfully been copied"""
         self.totalBytesWritten += bytesWritten
-        stdout.write('copying image... {0:.2f}%\r'
-                     .format(float(self.totalBytesWritten/self.totalBytes)*100))
+        self.copyProgress = float(self.totalBytesWritten/self.totalBytes)*100
+        stdout.write('copying image... {0:.2f}%\r'.format(self.copyProgress))
         stdout.flush()
 
     def copyfileobj(self, fsrc, fdst, length=(16*1024)):
@@ -75,6 +85,7 @@ class BootableDiskCreator:
 
     def executeCommand(self, description, command):
         """Executes command given and exits if error is encountered"""
+        self.buffer.write(description)
         print(description, end='')
         process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
         out, err = process.communicate()
@@ -86,6 +97,7 @@ class BootableDiskCreator:
                   file=stderr)
             sysexit(process.returncode)
 
+        self.buffer.write('done\n')
         print('done')
         return out
 
@@ -157,6 +169,8 @@ class BootableDiskCreator:
 
     def main(self, args):
         """Reads command line arguments, mounts image, and copies image files to given partition"""
+        self.done = False
+
         # check if script was executed with root privilages
         self.checkRoot()
 
@@ -208,3 +222,4 @@ class BootableDiskCreator:
         # final clean up
         self.executeCommand('unmounting image...', 'umount {0}'.format(self.isoMount))
         self.executeCommand('unmounting {0}...'.format(device), 'umount {0}'.format(device))
+        self.done = True
