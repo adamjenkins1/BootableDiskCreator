@@ -15,7 +15,6 @@ Python Version: 3.6.5
 from subprocess import Popen, PIPE
 from getpass import getuser
 from sys import exit as sysexit, stderr, stdout
-from time import sleep
 import shutil
 import os
 import pwd
