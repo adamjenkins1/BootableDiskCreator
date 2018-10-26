@@ -21,7 +21,9 @@ def main():
     parser.add_argument('--device-mount', type=str, help='mount point for block device')
 
     b = BootableDiskCreator()
-    b.start(parser.parse_args())
+    args = parser.parse_args()
+    args.verbose = True
+    b.start(args)
 
 if __name__ == '__main__':
     main()
