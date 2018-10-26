@@ -15,43 +15,56 @@ Python Version: 3.6.5
 from subprocess import Popen, PIPE
 from getpass import getuser
 from sys import exit as sysexit, stderr, stdout
+from time import sleep
 import shutil
 import os
 import pwd
 import threading
 
-class StringBuffer:
-    def __init__(self):
-        self.string = ''
-
-    def write(self, string):
-        self.string += string
-
-    def read(self):
-        ret = self.string
-        self.string = ''
-        return ret
-
 class BootableDiskCreator:
     """class that contains variables and methods to create a bootable drive"""
+
+    class StringBuffer:
+        def __init__(self):
+            self.string = ''
+
+        def write(self, string):
+            self.string += string
+
+        def read(self):
+            ret = self.string
+            self.string = ''
+            return ret
+
     def __init__(self):
         """initializes member variables to default values"""
         self.totalBytes = 0
         self.totalBytesWritten = 0
         self.isoMount = '/mnt/iso/'
         self.target = '/mnt/target/'
-        self.buffer = StringBuffer()
+        self.buffer = self.StringBuffer()
         self.copyProgress = 0.0
         self.done = False
         self.thread = object()
+        self.mutex = threading.Lock()
         self.iso = ''
         self.device = ''
 
+    def getStringBuffer(self):
+        ret = ''
+        self.mutex.acquire()
+        ret = self.buffer.read()
+        self.mutex.release()
+        return ret
+
     def progressCallback(self, bytesWritten):
         """prints percentange of image that has successfully been copied"""
+        self.mutex.acquire()
         self.totalBytesWritten += bytesWritten
         self.copyProgress = float(self.totalBytesWritten/self.totalBytes)*100
+        self.buffer.write('copying image... {0:.2f}%\n'.format(self.copyProgress))
         stdout.write('copying image... {0:.2f}%\r'.format(self.copyProgress))
+        self.mutex.release()
         stdout.flush()
 
     def copyfileobj(self, fsrc, fdst, length=(16*1024)):
@@ -89,7 +102,10 @@ class BootableDiskCreator:
 
     def executeCommand(self, description, command):
         """Executes command given and exits if error is encountered"""
+        self.mutex.acquire()
         self.buffer.write(description)
+        self.mutex.release()
+
         print(description, end='')
         process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
         out, err = process.communicate()
@@ -101,7 +117,9 @@ class BootableDiskCreator:
                   file=stderr)
             sysexit(process.returncode)
 
+        self.mutex.acquire()
         self.buffer.write('done\n')
+        self.mutex.release()
         print('done')
         return out
 
@@ -195,6 +213,11 @@ class BootableDiskCreator:
 
         self.thread = threading.Thread(target=self.main)
         self.thread.start()
+        ''' 
+        while(self.thread.is_alive()):
+            print('main thread buffer = \'{}\''.format(self.buffer.read()))
+            sleep(0.5)
+        '''
 
     def main(self):
         """Reads command line arguments, mounts image, and copies image files to given partition"""
