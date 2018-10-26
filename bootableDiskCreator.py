@@ -48,6 +48,7 @@ class BootableDiskCreator:
         self.mutex = threading.Lock()
         self.iso = ''
         self.device = ''
+        self.verbose = True
 
     def getStringBuffer(self):
         ret = ''
@@ -62,7 +63,8 @@ class BootableDiskCreator:
         self.totalBytesWritten += bytesWritten
         self.copyProgress = float(self.totalBytesWritten/self.totalBytes)*100
         self.buffer.write('copying image... {0:.2f}%\n'.format(self.copyProgress))
-        stdout.write('copying image... {0:.2f}%\r'.format(self.copyProgress))
+        if self.verbose:
+            stdout.write('copying image... {0:.2f}%\r'.format(self.copyProgress))
         self.mutex.release()
         stdout.flush()
 
@@ -96,8 +98,9 @@ class BootableDiskCreator:
                 shutil.copy(isoEntry, self.target)
 
         # delete previous line from callback function
-        stdout.write('\x1b[2K')
-        print('copying image...done')
+        if self.verbose:
+            stdout.write('\x1b[2K')
+            print('copying image...done')
 
     def executeCommand(self, description, command, logging=True):
         """Executes command given and exits if error is encountered"""
@@ -106,7 +109,9 @@ class BootableDiskCreator:
             self.buffer.write(description)
             self.mutex.release()
 
-        print(description, end='')
+        if self.verbose:
+            print(description, end='')
+
         process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
         out, err = process.communicate()
         out = out[:-1].decode()
@@ -121,7 +126,10 @@ class BootableDiskCreator:
             self.mutex.acquire()
             self.buffer.write('done\n')
             self.mutex.release()
-        print('done')
+
+        if self.verbose:
+            print('done')
+
         return out
 
     def getAvailablePartitions(self, logging=True):
@@ -146,6 +154,7 @@ class BootableDiskCreator:
 
         self.device = args.device
         self.iso = args.image
+        self.verbose = args.verbose
 
         # if optional mount point was provided, use it
         if args.image_mount:

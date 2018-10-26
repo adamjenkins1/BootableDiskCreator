@@ -36,7 +36,7 @@ class BDCThread(QtCore.QThread):
     def run(self):
         self.mutex.acquire()
         if not self.running:
-            self.bdc.start(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
+            self.bdc.start(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None, verbose=False))
             self.running = True
         self.mutex.release()
 
@@ -100,7 +100,7 @@ class GUI(QtWidgets.QMainWindow):
         self.checkRoot()
 
     def validISO(self):
-        return not self.iso != 'click "browse" to select the desired ISO image'
+        return self.iso != 'click "browse" to select the desired ISO image'
 
     def displayConfirmation(self):
         # TODO: check drive size and iso size
