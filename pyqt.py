@@ -37,15 +37,43 @@ class BDCThread(QtCore.QThread):
     def run(self):
         self.mutex.acquire()
         if not self.running:
-            self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
+            self.bdc.start(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
             self.running = True
-
-        self.buffer = self.bdc.buffer.read()
-        if self.bdc.done:
-            self.running = False
-
         self.mutex.release()
-        sleep(0.01)
+
+        while(self.isRunning()):
+            self.mutex.acquire()
+            self.buffer = self.bdc.getStringBuffer()
+            if self.bdc.done:
+                self.running = False
+
+            self.mutex.release()
+            sleep(0.01)
+
+class LogDialog(QtWidgets.QDialog):
+    def __init__(self):
+        super().__init__()
+        self.gridLayout = QtWidgets.QGridLayout(self)
+        self.textEdit = QtWidgets.QTextEdit(self)
+        self.setupUI()
+        self.retranslateUI()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def setupUI(self):
+        self.setObjectName('Dialog')
+        self.resize(582, 280)
+        self.gridLayout.setObjectName('gridLayout')
+        self.textEdit.setReadOnly(True)
+        self.textEdit.setPlaceholderText('')
+        self.textEdit.setObjectName('textEdit')
+        self.gridLayout.addWidget(self.textEdit, 0, 0, 1, 1)
+
+    def retranslateUI(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate('Dialog', 'Log Output'))
+
+    def append(self, string):
+        self.textEdit.append(string)
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self):
@@ -64,6 +92,7 @@ class GUI(QtWidgets.QMainWindow):
         self.goButton = QtWidgets.QPushButton(self.centralwidget)
         self.guiSig = QtCore.pyqtSignal(str)
         self.bdcThread = object()
+        self.logView = LogDialog()
 
         self.setupUI()
         self.retranslateUI()
@@ -83,15 +112,22 @@ class GUI(QtWidgets.QMainWindow):
         if response == QtWidgets.QMessageBox.Yes:
             self.bdcThread = BDCThread(self.bdc, self.selectedPartition, self.iso)
             self.bdcThread.start()
+            self.logView.show()
 
             while(not self.bdcThread.isRunning()):
-                print('waiting for bdcThread...')
-                sleep(0.5)
+                #print('waiting for bdcThread...')
+                QtCore.QCoreApplication.processEvents()
+                sleep(0.05)
 
             while(self.bdcThread.isRunning()):
-                print('on main thread!')
-                print(self.bdcThread.getBuffer())
-                sleep(0.5)
+                #print('on main thread!')
+                #print(self.bdcThread.getBuffer())
+                logOutput = self.bdcThread.getBuffer()
+                if logOutput:
+                    self.logView.append(logOutput)
+
+                QtCore.QCoreApplication.processEvents()
+                sleep(0.05)
 
     def checkRoot(self):
         try:
@@ -203,7 +239,6 @@ class GUI(QtWidgets.QMainWindow):
         self.partitionsInstructions.setText(_translate('MainWindow', 'Select partition from drop down menu (you must select an ISO image first)'))
         self.refreshPartitionsButton.setText(_translate('MainWindow', 'Refresh Parititions'))
         self.goButton.setText(_translate('MainWindow', 'Go!'))
-
 
 def main():
     app = QtWidgets.QApplication([])
