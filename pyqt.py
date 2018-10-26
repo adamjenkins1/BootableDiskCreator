@@ -4,6 +4,8 @@ from pathlib import Path
 from bootableDiskCreator import BootableDiskCreator
 from io import StringIO
 from argparse import Namespace
+from time import sleep
+from threading import Lock
 import sys
 import contextlib
 import os
@@ -14,16 +16,65 @@ class BDCThread(QtCore.QThread):
         self.bdc = bdc
         self.selectedPartition = selectedPartition
         self.iso = iso
-        self.threadSig = QtCore.pyqtSignal(str)
+        self.running = False
+        self.mutex = Lock()
+
+    def isRunning(self):
+        ret = False
+        self.mutex.acquire()
+        ret = self.running
+        self.mutex.release()
+        return ret
+
+    def getBuffer(self):
+        ret = ''
+        self.mutex.acquire()
+        ret = self.bdc.getStringBuffer()
+        self.mutex.release()
+        return ret
 
     def run(self):
-        self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
-        '''
-        out = StringIO()
-        with contextlib.redirect_stdout(out):
-            self.bdc.main(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
-            self.threadSig.emit(out.getvalue())
-        '''
+        self.mutex.acquire()
+        if not self.running:
+            self.bdc.start(Namespace(device=self.selectedPartition, image=self.iso, image_mount=None, device_mount=None))
+            self.running = True
+        self.mutex.release()
+
+        while(self.isRunning()):
+            self.mutex.acquire()
+            if self.bdc.done:
+                self.running = False
+
+            self.mutex.release()
+            sleep(0.01)
+
+class LogDialog(QtWidgets.QDialog):
+    def __init__(self):
+        super().__init__()
+        self.gridLayout = QtWidgets.QGridLayout(self)
+        self.textEdit = QtWidgets.QTextEdit(self)
+        self.setupUI()
+        self.retranslateUI()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def setupUI(self):
+        self.setObjectName('Dialog')
+        self.resize(582, 280)
+        self.gridLayout.setObjectName('gridLayout')
+        self.textEdit.setReadOnly(True)
+        self.textEdit.setPlaceholderText('')
+        self.textEdit.setObjectName('textEdit')
+        self.textEdit.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
+        self.gridLayout.addWidget(self.textEdit, 0, 0, 1, 1)
+
+    def retranslateUI(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate('Dialog', 'Log Output'))
+
+    def append(self, string):
+        self.textEdit.insertPlainText(string)
+        scrollBar = self.textEdit.verticalScrollBar()
+        scrollBar.setValue(scrollBar.maximum())
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self):
@@ -41,6 +92,7 @@ class GUI(QtWidgets.QMainWindow):
         self.refreshPartitionsButton = QtWidgets.QPushButton(self.centralwidget)
         self.goButton = QtWidgets.QPushButton(self.centralwidget)
         self.bdcThread = object()
+        self.logView = LogDialog()
         self.critMessageBox = QtWidgets.QMessageBox()
 
         self.setupUI()
@@ -51,11 +103,12 @@ class GUI(QtWidgets.QMainWindow):
         return not self.iso != 'click "browse" to select the desired ISO image'
 
     def displayConfirmation(self):
+        # TODO: check drive size and iso size
         if not self.validISO() or self.selectedPartition == '':
             self.critMessageBox.setText('You must select an ISO image AND partition before continuing')
             self.critMessageBox.exec()
             return
-
+          
         confirmationText = ('Warning: this program will format {0} as FAT32 '
                             'and copy your selected ISO image onto that '
                             'partition. This means that any data on \n{0} will '
@@ -67,6 +120,20 @@ class GUI(QtWidgets.QMainWindow):
         if response == QtWidgets.QMessageBox.Yes:
             self.bdcThread = BDCThread(self.bdc, self.selectedPartition, self.iso)
             self.bdcThread.start()
+            self.logView.textEdit.clear()
+            self.logView.show()
+
+            while(not self.bdcThread.isRunning()):
+                QtCore.QCoreApplication.processEvents()
+                sleep(0.05)
+
+            while(self.bdcThread.isRunning()):
+                logOutput = self.bdcThread.getBuffer()
+                if logOutput:
+                    self.logView.append(logOutput)
+
+                QtCore.QCoreApplication.processEvents()
+                sleep(0.005)
 
     def checkRoot(self):
         try:
@@ -118,8 +185,6 @@ class GUI(QtWidgets.QMainWindow):
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)
 
-    
-
     def partitionsDropDownActivated(self, text):
         self.selectedPartition = text
 
@@ -156,7 +221,7 @@ class GUI(QtWidgets.QMainWindow):
 
     def getAvailablePartitions(self):
         with contextlib.redirect_stdout(StringIO()):
-            partitions = self.bdc.getAvailablePartitions()
+            partitions = self.bdc.getAvailablePartitions(False)
 
         primary = ''
         for key, val in partitions.items():
@@ -180,7 +245,6 @@ class GUI(QtWidgets.QMainWindow):
         self.partitionsInstructions.setText(_translate('MainWindow', 'Select partition from drop down menu (you must select an ISO image first)'))
         self.refreshPartitionsButton.setText(_translate('MainWindow', 'Refresh Parititions'))
         self.goButton.setText(_translate('MainWindow', 'Go!'))
-
 
 def main():
     app = QtWidgets.QApplication([])
