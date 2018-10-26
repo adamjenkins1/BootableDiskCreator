@@ -17,7 +17,6 @@ class BDCThread(QtCore.QThread):
         self.selectedPartition = selectedPartition
         self.iso = iso
         self.running = False
-        self.buffer = ''
         self.mutex = Lock()
 
     def isRunning(self):
@@ -30,7 +29,7 @@ class BDCThread(QtCore.QThread):
     def getBuffer(self):
         ret = ''
         self.mutex.acquire()
-        ret = self.buffer
+        ret = self.bdc.getStringBuffer()
         self.mutex.release()
         return ret
 
@@ -43,7 +42,6 @@ class BDCThread(QtCore.QThread):
 
         while(self.isRunning()):
             self.mutex.acquire()
-            self.buffer = self.bdc.getStringBuffer()
             if self.bdc.done:
                 self.running = False
 
@@ -66,6 +64,7 @@ class LogDialog(QtWidgets.QDialog):
         self.textEdit.setReadOnly(True)
         self.textEdit.setPlaceholderText('')
         self.textEdit.setObjectName('textEdit')
+        self.textEdit.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.gridLayout.addWidget(self.textEdit, 0, 0, 1, 1)
 
     def retranslateUI(self):
@@ -73,7 +72,9 @@ class LogDialog(QtWidgets.QDialog):
         self.setWindowTitle(_translate('Dialog', 'Log Output'))
 
     def append(self, string):
-        self.textEdit.append(string)
+        self.textEdit.insertPlainText(string)
+        scrollBar = self.textEdit.verticalScrollBar()
+        scrollBar.setValue(scrollBar.maximum())
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self):
@@ -112,22 +113,20 @@ class GUI(QtWidgets.QMainWindow):
         if response == QtWidgets.QMessageBox.Yes:
             self.bdcThread = BDCThread(self.bdc, self.selectedPartition, self.iso)
             self.bdcThread.start()
+            self.logView.textEdit.clear()
             self.logView.show()
 
             while(not self.bdcThread.isRunning()):
-                #print('waiting for bdcThread...')
                 QtCore.QCoreApplication.processEvents()
                 sleep(0.05)
 
             while(self.bdcThread.isRunning()):
-                #print('on main thread!')
-                #print(self.bdcThread.getBuffer())
                 logOutput = self.bdcThread.getBuffer()
                 if logOutput:
                     self.logView.append(logOutput)
 
                 QtCore.QCoreApplication.processEvents()
-                sleep(0.05)
+                sleep(0.005)
 
     def checkRoot(self):
         try:
@@ -215,7 +214,7 @@ class GUI(QtWidgets.QMainWindow):
 
     def getAvailablePartitions(self):
         with contextlib.redirect_stdout(StringIO()):
-            partitions = self.bdc.getAvailablePartitions()
+            partitions = self.bdc.getAvailablePartitions(False)
 
         primary = ''
         for key, val in partitions.items():

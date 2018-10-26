@@ -100,11 +100,12 @@ class BootableDiskCreator:
         stdout.write('\x1b[2K')
         print('copying image...done')
 
-    def executeCommand(self, description, command):
+    def executeCommand(self, description, command, logging=True):
         """Executes command given and exits if error is encountered"""
-        self.mutex.acquire()
-        self.buffer.write(description)
-        self.mutex.release()
+        if logging:
+            self.mutex.acquire()
+            self.buffer.write(description)
+            self.mutex.release()
 
         print(description, end='')
         process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -117,17 +118,18 @@ class BootableDiskCreator:
                   file=stderr)
             sysexit(process.returncode)
 
-        self.mutex.acquire()
-        self.buffer.write('done\n')
-        self.mutex.release()
+        if logging:
+            self.mutex.acquire()
+            self.buffer.write('done\n')
+            self.mutex.release()
         print('done')
         return out
 
-    def getAvailablePartitions(self):
+    def getAvailablePartitions(self, logging=True):
         """Creates and returns dictionary of partitions and their mountpoints"""
         # get list of partitions
         out = self.executeCommand('getting available partitions...',
-                                  'lsblk -l | awk \'{if($6 == "part") {print $1","$7}}\'')
+                                  'lsblk -l | awk \'{if($6 == "part") {print $1","$7}}\'', logging)
 
         # creates dictionary of partitions and their mount points (ex {'/dev/sdb1':'/mnt/target'})
         # if mount point is '', then partition is not mounted
@@ -213,11 +215,6 @@ class BootableDiskCreator:
 
         self.thread = threading.Thread(target=self.main)
         self.thread.start()
-        ''' 
-        while(self.thread.is_alive()):
-            print('main thread buffer = \'{}\''.format(self.buffer.read()))
-            sleep(0.5)
-        '''
 
     def main(self):
         """Reads command line arguments, mounts image, and copies image files to given partition"""
@@ -246,6 +243,7 @@ class BootableDiskCreator:
         # use overridden copy funtion which includes callback
         shutil.copyfileobj = self.copyfileobj
 
+        self.totalBytesWritten = 0
         self.copyImage()
 
         # final clean up
