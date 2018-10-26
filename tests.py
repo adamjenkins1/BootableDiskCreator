@@ -61,14 +61,34 @@ class BootableDiskCreatorTests(TestCase):
             self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso'))
         self.assertEqual(err.exception.code, 'Error: partition \'/dev/sdb1\' does not exist')
 
+    @mock.patch('os.statvfs')
+    @mock.patch('os.path.getsize')
     @mock.patch('os.path.isfile')
     @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
-    def test_partition_mounted_as_parent_or_boot(self, mockPwd, mockExecute, mockFile):
+    def test_partition_too_small(self, mockPwd, mockExecute, mockFile, mockImageSize, mockStats):
+        """tests if the given partition exists"""
+        mockPwd.return_value = MagicMock(pw_uid=0)
+        mockExecute.return_value = 'sdb1,'
+        mockFile.return_value = True
+        mockImageSize.return_value = 1024**2
+        mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1)
+        with self.assertRaises(SystemExit) as err:
+            self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso'))
+        self.assertEqual(err.exception.code, 'Error: not enough space to copy \'image.iso\' onto \'/dev/sdb1\'')
+
+    @mock.patch('os.statvfs')
+    @mock.patch('os.path.getsize')
+    @mock.patch('os.path.isfile')
+    @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
+    @mock.patch('pwd.getpwnam')
+    def test_partition_mounted_as_parent_or_boot(self, mockPwd, mockExecute, mockFile, mockImageSize, mockStats):
         """tests if then given partition is mounted as something important"""
         mockPwd.return_value = MagicMock(pw_uid=0)
         mockExecute.return_value = 'sda1,/'
         mockFile.return_value = True
+        mockImageSize.return_value = 1024**2
+        mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1024)
         with self.assertRaises(SystemExit) as err:
             self.obj.start(MagicMock(device='/dev/sda1', image='image.iso'))
         self.assertEqual(err.exception.code,
@@ -80,21 +100,27 @@ class BootableDiskCreatorTests(TestCase):
         self.assertEqual(err.exception.code,
                          'Error: partition \'/dev/sda1\' currently mounted as \'/boot\'')
 
+    @mock.patch('os.statvfs')
+    @mock.patch('os.path.getsize')
     @mock.patch('builtins.input')
     @mock.patch('os.path.isfile')
     @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
-    def test_partition_on_primary_disk(self, mockPwd, mockExecute, mockFile, mockInput):
+    def test_partition_on_primary_disk(self, mockPwd, mockExecute, mockFile, mockInput, mockImageSize, mockStats):
         """tests that warning is provided if given partition is on main disk"""
         mockPwd.return_value = MagicMock(pw_uid=0)
         mockExecute.return_value = 'sda1,/\nsda2,'
         mockFile.return_value = True
         mockInput.side_effect = ['asdf', 'no']
+        mockImageSize.return_value = 1024**2
+        mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1024)
 
         with self.assertRaises(SystemExit) as err:
             self.obj.start(MagicMock(device='/dev/sda2', image='image.iso'))
         self.assertEqual(err.exception.code, 0)
 
+    @mock.patch('os.statvfs')
+    @mock.patch('os.path.getsize')
     @mock.patch('threading.Thread')
     @mock.patch('bootableDiskCreator.BootableDiskCreator.copyImage')
     @mock.patch('os.path.ismount')
@@ -103,7 +129,7 @@ class BootableDiskCreatorTests(TestCase):
     @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_create_bootable_drive(self, mockPwd, mockExecute, mockFile, mockDir,
-                                   mockMount, mockCopy, mockThread):
+                                   mockMount, mockCopy, mockThread, mockImageSize, mockStats):
         """tests functionality of creating a bootable drive"""
         mockThread.start = self.obj.main()
         mockPwd.return_value = MagicMock(pw_uid=0)
@@ -111,5 +137,7 @@ class BootableDiskCreatorTests(TestCase):
         mockFile.return_value = True
         mockDir.return_value = True
         mockMount.return_value = True
+        mockImageSize.return_value = 1024**2
+        mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1024)
 
         self.assertEqual(self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso')), None)

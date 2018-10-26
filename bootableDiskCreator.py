@@ -177,6 +177,11 @@ class BootableDiskCreator:
         if self.device not in devices.keys():
             sysexit('Error: partition \'{0}\' does not exist'.format(self.device))
 
+        partitionStats = os.statvfs(self.device)
+
+        if os.path.getsize(self.iso) > (partitionStats.f_bsize * partitionStats.f_blocks):
+            sysexit('Error: not enough space to copy \'{0}\' onto \'{1}\''.format(self.iso, self.device))
+
         # check if partition is mounted as something important
         if devices[self.device] == '/' or '/boot' in devices[self.device]:
             sysexit('Error: partition \'{0}\' currently mounted as \'{1}\''

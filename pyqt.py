@@ -103,7 +103,6 @@ class GUI(QtWidgets.QMainWindow):
         return self.iso != 'click "browse" to select the desired ISO image'
 
     def displayConfirmation(self):
-        # TODO: check drive size and iso size
         if not self.validISO() or self.selectedPartition == '':
             self.critMessageBox.setText('You must select an ISO image AND partition before continuing')
             self.critMessageBox.exec()
