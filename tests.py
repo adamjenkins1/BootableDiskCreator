@@ -10,6 +10,7 @@ Python Version: 3.6.5
 
 import pwd
 import os
+import threading
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
 from bootableDiskCreator import BootableDiskCreator
@@ -29,7 +30,7 @@ class BootableDiskCreatorTests(TestCase):
         """tests whether or not script was executed as root"""
         mockPwd.return_value = MagicMock(pw_uid=1)
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sdb1', image='image.iso'))
+            self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso'))
         self.assertEqual(err.exception.code, 'Error: must run as root')
 
     @mock.patch('pwd.getpwnam')
@@ -37,7 +38,7 @@ class BootableDiskCreatorTests(TestCase):
         """tests if the provided image exists"""
         mockPwd.return_value = MagicMock(pw_uid=0)
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sdb1', image='image.asdf'))
+            self.obj.start(MagicMock(device='/dev/sdb1', image='image.asdf'))
         self.assertEqual(err.exception.code, 'Error: \'image.asdf\' is not an ISO image')
 
     @mock.patch('pwd.getpwnam')
@@ -45,7 +46,7 @@ class BootableDiskCreatorTests(TestCase):
         """tests if the provided image exists"""
         mockPwd.return_value = MagicMock(pw_uid=0)
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sdb1', image='image.iso'))
+            self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso'))
         self.assertEqual(err.exception.code, 'Error: image \'image.iso\' does not exist')
 
     @mock.patch('os.path.isfile')
@@ -57,7 +58,7 @@ class BootableDiskCreatorTests(TestCase):
         mockExecute.return_value = 'sda1,/'
         mockFile.return_value = True
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sdb1', image='image.iso'))
+            self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso'))
         self.assertEqual(err.exception.code, 'Error: partition \'/dev/sdb1\' does not exist')
 
     @mock.patch('os.path.isfile')
@@ -69,13 +70,13 @@ class BootableDiskCreatorTests(TestCase):
         mockExecute.return_value = 'sda1,/'
         mockFile.return_value = True
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sda1', image='image.iso'))
+            self.obj.start(MagicMock(device='/dev/sda1', image='image.iso'))
         self.assertEqual(err.exception.code,
                          'Error: partition \'/dev/sda1\' currently mounted as \'/\'')
 
         mockExecute.return_value = 'sda1,/boot'
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sda1', image='image.iso'))
+            self.obj.start(MagicMock(device='/dev/sda1', image='image.iso'))
         self.assertEqual(err.exception.code,
                          'Error: partition \'/dev/sda1\' currently mounted as \'/boot\'')
 
@@ -91,9 +92,10 @@ class BootableDiskCreatorTests(TestCase):
         mockInput.side_effect = ['asdf', 'no']
 
         with self.assertRaises(SystemExit) as err:
-            self.obj.main(MagicMock(device='/dev/sda2', image='image.iso'))
+            self.obj.start(MagicMock(device='/dev/sda2', image='image.iso'))
         self.assertEqual(err.exception.code, 0)
 
+    @mock.patch('threading.Thread')
     @mock.patch('bootableDiskCreator.BootableDiskCreator.copyImage')
     @mock.patch('os.path.ismount')
     @mock.patch('os.path.isdir')
@@ -101,12 +103,13 @@ class BootableDiskCreatorTests(TestCase):
     @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_create_bootable_drive(self, mockPwd, mockExecute, mockFile, mockDir,
-                                   mockMount, mockCopy):
+                                   mockMount, mockCopy, mockThread):
         """tests functionality of creating a bootable drive"""
+        mockThread.start = self.obj.main()
         mockPwd.return_value = MagicMock(pw_uid=0)
         mockExecute.side_effect = ['sda1,/\nsdb1,/mnt/fakemount', '', '', '', 5000, '', '', '', '']
         mockFile.return_value = True
         mockDir.return_value = True
         mockMount.return_value = True
 
-        self.assertEqual(self.obj.main(MagicMock(device='/dev/sdb1', image='image.iso')), None)
+        self.assertEqual(self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso')), None)

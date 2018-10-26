@@ -18,6 +18,7 @@ from sys import exit as sysexit, stderr, stdout
 import shutil
 import os
 import pwd
+import threading
 
 class StringBuffer:
     def __init__(self):
@@ -42,6 +43,9 @@ class BootableDiskCreator:
         self.buffer = StringBuffer()
         self.copyProgress = 0.0
         self.done = False
+        self.thread = object()
+        self.iso = ''
+        self.device = ''
 
     def progressCallback(self, bytesWritten):
         """prints percentange of image that has successfully been copied"""
@@ -116,32 +120,45 @@ class BootableDiskCreator:
 
         return devices
 
-    def validateInput(self, iso, device):
+    def validateInput(self, args):
         """Validates user input and if input is correct, takes appropriate action"""
+        # check if script was executed with root privilages
+        self.checkRoot()
+
+        self.device = args.device
+        self.iso = args.image
+
+        # if optional mount point was provided, use it
+        if args.image_mount:
+            self.isoMount = args.image_mount
+
+        if args.device_mount:
+            self.target = args.device_mount
+
         # check if file provided has .iso extension
-        if iso.split('.')[-1] != 'iso':
-            sysexit('Error: \'{0}\' is not an ISO image'.format(iso))
+        if self.iso.split('.')[-1] != 'iso':
+            sysexit('Error: \'{0}\' is not an ISO image'.format(self.iso))
 
         # check if image file provided exists
-        if not os.path.isfile(iso):
-            sysexit('Error: image \'{0}\' does not exist'.format(iso))
+        if not os.path.isfile(self.iso):
+            sysexit('Error: image \'{0}\' does not exist'.format(self.iso))
 
         devices = self.getAvailablePartitions()
 
         # check if partition exists
-        if device not in devices.keys():
-            sysexit('Error: partition \'{0}\' does not exist'.format(device))
+        if self.device not in devices.keys():
+            sysexit('Error: partition \'{0}\' does not exist'.format(self.device))
 
         # check if partition is mounted as something important
-        if devices[device] == '/' or '/boot' in devices[device]:
+        if devices[self.device] == '/' or '/boot' in devices[self.device]:
             sysexit('Error: partition \'{0}\' currently mounted as \'{1}\''
-                    .format(device, devices[device]))
+                    .format(self.device, devices[self.device]))
 
         # check if user provided partition on same disk as OS and warn them
         OSDisk = False
         choice = ''
         for key, value in devices.items():
-            if device[:-1] in key and (value == '/' or '/boot' in value):
+            if self.device[:-1] in key and (value == '/' or '/boot' in value):
                 OSDisk = True
 
         if OSDisk:
@@ -160,39 +177,28 @@ class BootableDiskCreator:
                 sysexit(0)
 
         # if device is mounted, unmount it
-        if devices[device] != '':
-            self.executeCommand('unmounting drive to be formated...', 'umount {0}'.format(device))
-
-    def checkRoot(self):
-        if pwd.getpwnam(getuser()).pw_uid != 0:
-            sysexit('Error: must run as root')
-
-    def main(self, args):
-        """Reads command line arguments, mounts image, and copies image files to given partition"""
-        self.done = False
-
-        # check if script was executed with root privilages
-        self.checkRoot()
-
-        device = args.device
-        iso = args.image
-
-
-        # if optional mount point was provided, use it
-        if args.image_mount:
-            self.isoMount = args.image_mount
-
-        if args.device_mount:
-            self.target = args.device_mount
-
-
-        # validates user input
-        self.validateInput(iso, device)
+        if devices[self.device] != '':
+            self.executeCommand('unmounting drive to be formated...', 'umount {0}'.format(self.device))
 
         # if mount point does not exist, make it
         for mountPoint in [self.isoMount, self.target]:
             if not os.path.isdir(mountPoint):
                 os.mkdir(mountPoint)
+
+    def checkRoot(self):
+        if pwd.getpwnam(getuser()).pw_uid != 0:
+            sysexit('Error: must run as root')
+
+    def start(self, args):
+        # validates user input
+        self.validateInput(args)
+
+        self.thread = threading.Thread(target=self.main)
+        self.thread.start()
+
+    def main(self):
+        """Reads command line arguments, mounts image, and copies image files to given partition"""
+        self.done = False
 
         # check if the image mount point is already in use
         if os.path.ismount(self.isoMount):
@@ -201,7 +207,7 @@ class BootableDiskCreator:
 
         # mount iso image onto loop device
         self.executeCommand('mounting image...',
-                            'mount -o loop {0} {1}'.format(iso, self.isoMount))
+                            'mount -o loop {0} {1}'.format(self.iso, self.isoMount))
 
         # get size of mounted image
         self.totalBytes = int(self.executeCommand(
@@ -210,9 +216,9 @@ class BootableDiskCreator:
 
         # format given partition and then mount it
         self.executeCommand('formatting partition as fat32...',
-                            'mkfs.fat -F32 -I {0}'.format(device))
-        self.executeCommand('mouting {0} to {1}...'.format(device, self.target),
-                            'mount {0} {1}'.format(device, self.target))
+                            'mkfs.fat -F32 -I {0}'.format(self.device))
+        self.executeCommand('mouting {0} to {1}...'.format(self.device, self.target),
+                            'mount {0} {1}'.format(self.device, self.target))
 
         # use overridden copy funtion which includes callback
         shutil.copyfileobj = self.copyfileobj
@@ -221,5 +227,5 @@ class BootableDiskCreator:
 
         # final clean up
         self.executeCommand('unmounting image...', 'umount {0}'.format(self.isoMount))
-        self.executeCommand('unmounting {0}...'.format(device), 'umount {0}'.format(device))
+        self.executeCommand('unmounting {0}...'.format(self.device), 'umount {0}'.format(self.device))
         self.done = True
