@@ -1,0 +1,15 @@
+language: python
+matrix:
+  include:
+    - python: "3.6.5"
+
+before_install:
+  - sudo apt update
+  - sudo apt install -y python3-pip
+  - sudo -H pip3 install pytest
+
+jobs:
+  include:
+    - stage: "test"
+      name: "unit tests"
+      script: pytest src/tests.py
