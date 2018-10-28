@@ -1,4 +1,4 @@
-# Bootable Disk Creator [![Build Status](https://travis-ci.org/adamjenkins1/BootableDiskCreator.svg?branch=master)](https://travis-ci.org/adamjenkins1/BootableDiskCreator)
+# Bootable Disk Creator [![Build Status](https://travis-ci.org/adamjenkins1/BootableDiskCreator.svg?branch=master)](https://travis-ci.org/adamjenkins1/BootableDiskCreator) [![codecov](https://codecov.io/gh/adamjenkins1/BootableDiskCreator/branch/master/graph/badge.svg)](https://codecov.io/gh/adamjenkins1/BootableDiskCreator)
 
 This project consists of a multithreaded GUI and CLI to automate the process of creating bootable install media in Linux. **NOTE: this project is still in development and has not been released. You can download the source and run the GUI or CLI, but an actual package has not been created yet.**
 
