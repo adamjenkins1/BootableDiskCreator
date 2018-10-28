@@ -1,0 +1,6 @@
+[run]
+include = src/bootableDiskCreator.py
+omit = 
+  src/tests.py
+  src/main.py
+  src/pyqt.py
