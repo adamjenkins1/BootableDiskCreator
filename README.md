@@ -3,7 +3,7 @@
 This project consists of a multithreaded GUI and CLI to automate the process of creating bootable install media in Linux. **NOTE: this project is still in development and has not been released. You can download the source and run the GUI or CLI, but an actual package has not been created yet.**
 
 ## Dependencies
-* Python >= 3.6.5
+* Python >= 3.5
 * PyQt5 == 5.11.3
 * awk
 * mkfs.fat
