@@ -6,6 +6,8 @@ python:
 
 install:
   - pip install -r requirements.txt
+  - pip install codecov
 
 script: 
-  - pytest src/tests.py
+  - pytest --cov=./src src/tests.py
+  - codecov --token=$CODECOV_TOKEN
