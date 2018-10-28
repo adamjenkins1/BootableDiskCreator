@@ -29,7 +29,7 @@ optional arguments:
   --silent              suppress log output
 ```
 An example call would be:
-```bash
+```
 ./main.py </path/to/image.iso> </dev/partition1>
 ```
 
