@@ -7,8 +7,5 @@ python:
 install:
   - pip install -r requirements.txt
 
-jobs:
-  include:
-    - stage: "test"
-      name: "unit tests"
-      script: pytest src/tests.py
+script: 
+  - pytest src/tests.py
