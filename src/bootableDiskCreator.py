@@ -8,13 +8,14 @@ by Windows or OS X (using dd)
 File name: bootableDiskCreator.py
 Author: Adam Jenkins
 Date created: 9/5/2018
-Date last modified: ...
+Date last modified: 10/27/18
 Python Version: 3.6.5
 """
 
 from subprocess import Popen, PIPE
 from getpass import getuser
-from sys import exit as sysexit, stderr, stdout
+from sys import stderr, stdout
+import sys
 import shutil
 import os
 import pwd
@@ -24,13 +25,21 @@ class BootableDiskCreator:
     """class that contains variables and methods to create a bootable drive"""
 
     class StringBuffer:
+        """contains string which stores output normally written to stdout
+
+        This string is then accessed by PyQt to display the logging output to the GUI
+        instead of stdout. Access to BootableDiskCreator's instance of StringBuffer is thread safe.
+        """
         def __init__(self):
+            """initializes string to default value"""
             self.string = ''
 
         def write(self, string):
+            """concatenates member variable with input"""
             self.string += string
 
         def read(self):
+            """returns member variable value and resets it"""
             ret = self.string
             self.string = ''
             return ret
@@ -51,6 +60,7 @@ class BootableDiskCreator:
         self.verbose = True
 
     def getStringBuffer(self):
+        """locks thread while getting buffer and returns result"""
         ret = ''
         self.mutex.acquire()
         ret = self.buffer.read()
@@ -75,13 +85,13 @@ class BootableDiskCreator:
         progressCallback() function call to update users on how much of the image
         has been successfully copied
         """
-        fsrc_read = fsrc.read
-        fdst_write = fdst.write
+        fsrcRead = fsrc.read
+        fdstWrite = fdst.write
         while True:
-            buf = fsrc_read(length)
+            buf = fsrcRead(length)
             if not buf:
                 break
-            fdst_write(buf)
+            fdstWrite(buf)
             self.progressCallback(len(buf))
 
     def copyImage(self):
@@ -120,7 +130,7 @@ class BootableDiskCreator:
         if process.returncode:
             print('fail\n\'{0}\' returned the following error:\n\'{1}\''.format(command, err),
                   file=stderr)
-            sysexit(process.returncode)
+            sys.exit(process.returncode)
 
         if logging:
             self.mutex.acquire()
@@ -154,7 +164,7 @@ class BootableDiskCreator:
 
         self.device = args.device
         self.iso = args.image
-        self.verbose = args.verbose
+        self.verbose = not args.silent
 
         # if optional mount point was provided, use it
         if args.image_mount:
@@ -165,36 +175,37 @@ class BootableDiskCreator:
 
         # check if file provided has .iso extension
         if self.iso.split('.')[-1] != 'iso':
-            sysexit('Error: \'{0}\' is not an ISO image'.format(self.iso))
+            sys.exit('Error: \'{0}\' is not an ISO image'.format(self.iso))
 
         # check if image file provided exists
         if not os.path.isfile(self.iso):
-            sysexit('Error: image \'{0}\' does not exist'.format(self.iso))
+            sys.exit('Error: image \'{0}\' does not exist'.format(self.iso))
 
         devices = self.getAvailablePartitions()
 
         # check if partition exists
         if self.device not in devices.keys():
-            sysexit('Error: partition \'{0}\' does not exist'.format(self.device))
+            sys.exit('Error: partition \'{0}\' does not exist'.format(self.device))
 
         partitionStats = os.statvfs(self.device)
 
         if os.path.getsize(self.iso) > (partitionStats.f_bsize * partitionStats.f_blocks):
-            sysexit('Error: not enough space to copy \'{0}\' onto \'{1}\''.format(self.iso, self.device))
+            sys.exit('Error: not enough space to copy \'{0}\' onto \'{1}\''
+                     .format(self.iso, self.device))
 
         # check if partition is mounted as something important
         if devices[self.device] == '/' or '/boot' in devices[self.device]:
-            sysexit('Error: partition \'{0}\' currently mounted as \'{1}\''
-                    .format(self.device, devices[self.device]))
+            sys.exit('Error: partition \'{0}\' currently mounted as \'{1}\''
+                     .format(self.device, devices[self.device]))
 
         # check if user provided partition on same disk as OS and warn them
-        OSDisk = False
+        osDisk = False
         choice = ''
         for key, value in devices.items():
             if self.device[:-1] in key and (value == '/' or '/boot' in value):
-                OSDisk = True
+                osDisk = True
 
-        if OSDisk:
+        if osDisk:
             print(('Warning: it looks like the given partition is on the same disk as your OS.\n'
                    'This utility is designed to create REMOVABLE install media, but will'
                    ' format any\npartition if it is available. However, creating bootable install'
@@ -207,11 +218,12 @@ class BootableDiskCreator:
                 choice = input()
 
             if choice.lower() != 'yes':
-                sysexit(0)
+                sys.exit(0)
 
         # if device is mounted, unmount it
         if devices[self.device] != '':
-            self.executeCommand('unmounting drive to be formated...', 'umount {0}'.format(self.device))
+            self.executeCommand('unmounting drive to be formated...',
+                                'umount {0}'.format(self.device))
 
         # if mount point does not exist, make it
         for mountPoint in [self.isoMount, self.target]:
@@ -219,11 +231,16 @@ class BootableDiskCreator:
                 os.mkdir(mountPoint)
 
     def checkRoot(self):
+        """checks if script was executed with root privilages
+
+        This is necessary because formating partitions and mounting devices requires
+        root permissions
+        """
         if pwd.getpwnam(getuser()).pw_uid != 0:
-            sysexit('Error: must run as root')
+            sys.exit('Error: must run as root')
 
     def start(self, args):
-        # validates user input
+        """validates user input and starts thread to create drive"""
         self.validateInput(args)
 
         self.thread = threading.Thread(target=self.main)
@@ -261,5 +278,6 @@ class BootableDiskCreator:
 
         # final clean up
         self.executeCommand('unmounting image...', 'umount {0}'.format(self.isoMount))
-        self.executeCommand('unmounting {0}...'.format(self.device), 'umount {0}'.format(self.device))
+        self.executeCommand('unmounting {0}...'.format(self.device),
+                            'umount {0}'.format(self.device))
         self.done = True
