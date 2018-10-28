@@ -1,12 +1,9 @@
 language: python
-matrix:
-  include:
-    - python: "3.6.5"
+python: 
+  - "3.6.5"
 
-before_install:
-  - sudo apt update
-  - sudo apt install -y python3-pip
-  - sudo -H pip3 install pytest
+install:
+  - pip install -r requirements.txt
 
 jobs:
   include:
