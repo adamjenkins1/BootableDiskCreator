@@ -102,7 +102,7 @@ class GUI(QtWidgets.QMainWindow):
         self.bdc.verbose = False
         self.centralwidget = QtWidgets.QWidget(self)
         self.instructions = QtWidgets.QLabel(self.centralwidget)
-        self.iso = ''
+        self.iso = 'click "browse" to select the desired ISO image'
         self.selectedPartition = ''
         self.partitions = {}
         self.browseButton = QtWidgets.QPushButton(self.centralwidget)
