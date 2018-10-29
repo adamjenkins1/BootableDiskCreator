@@ -4,12 +4,13 @@
 File name: main.py
 Author: Adam Jenkins
 Date created: 9/17/2018
-Date last modified: 10/27/18
+Date last modified: 10/28/18
 Python Version: 3.6.5
 """
 
 import argparse
 from bootableDiskCreator import BootableDiskCreator
+from dependencyChecker import DependencyChecker
 
 def main():
     """Sets up argument parser to parse command line arguments and calls class start method"""
@@ -20,6 +21,9 @@ def main():
     parser.add_argument('--image-mount', type=str, help='mount point for ISO image')
     parser.add_argument('--device-mount', type=str, help='mount point for block device')
     parser.add_argument('--silent', default=False, action='store_true', help='suppress log output')
+
+    d = DependencyChecker()
+    d.main()
 
     bdc = BootableDiskCreator()
     bdc.start(parser.parse_args())

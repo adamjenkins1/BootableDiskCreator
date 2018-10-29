@@ -4,7 +4,7 @@
 File name: pyqt.py
 Author: Adam Jenkins
 Date created: 10/19/2018
-Date last modified: 10/27/18
+Date last modified: 10/28/18
 Python Version: 3.6.5
 """
 import sys
@@ -14,6 +14,7 @@ from time import sleep
 from threading import Lock
 from PyQt5 import QtCore, QtGui, QtWidgets
 from bootableDiskCreator import BootableDiskCreator
+from dependencyChecker import DependencyChecker
 
 class BDCThread(QtCore.QThread):
     """subclass of QThread to call the BootableDiskCreator start method"""
@@ -294,7 +295,9 @@ class GUI(QtWidgets.QMainWindow):
         self.goButton.setText(_translate('MainWindow', 'Go!'))
 
 def main():
-    """creates global Qt application variable, GUI instance, and starts application"""
+    """checks dependencies, creates global Qt application variable, GUI instance, and starts application"""
+    d = DependencyChecker()
+    d.main()
     app = QtWidgets.QApplication([])
     gui = GUI()
     gui.show()
