@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contians class to test functionality of BootableDiskCreator class
+"""Contians class to test functionality of BootableDiskCreator and DependencyChecker classes
 
 File name: tests.py
 Author: Adam Jenkins
@@ -11,9 +11,14 @@ Python Version: 3.6.5
 import pwd
 import os
 import threading
+import shutil
+import sys
+from contextlib import redirect_stderr
+from io import StringIO
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
 from bootableDiskCreator import BootableDiskCreator
+from dependencyChecker import DependencyChecker
 
 class BootableDiskCreatorTests(TestCase):
     """test class that inherits from unittest.TestCase class"""
@@ -75,14 +80,16 @@ class BootableDiskCreatorTests(TestCase):
         mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1)
         with self.assertRaises(SystemExit) as err:
             self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso'))
-        self.assertEqual(err.exception.code, 'Error: not enough space to copy \'image.iso\' onto \'/dev/sdb1\'')
+        self.assertEqual(err.exception.code, ('Error: not enough space to copy \'image.iso\' '
+                                              'onto \'/dev/sdb1\''))
 
     @mock.patch('os.statvfs')
     @mock.patch('os.path.getsize')
     @mock.patch('os.path.isfile')
     @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
-    def test_partition_mounted_as_parent_or_boot(self, mockPwd, mockExecute, mockFile, mockImageSize, mockStats):
+    def test_partition_mounted_as_parent_or_boot(self, mockPwd, mockExecute, mockFile,
+                                                 mockImageSize, mockStats):
         """tests if then given partition is mounted as something important"""
         mockPwd.return_value = MagicMock(pw_uid=0)
         mockExecute.return_value = 'sda1,/'
@@ -106,7 +113,8 @@ class BootableDiskCreatorTests(TestCase):
     @mock.patch('os.path.isfile')
     @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
-    def test_partition_on_primary_disk(self, mockPwd, mockExecute, mockFile, mockInput, mockImageSize, mockStats):
+    def test_partition_on_primary_disk(self, mockPwd, mockExecute, mockFile, mockInput,
+                                       mockImageSize, mockStats):
         """tests that warning is provided if given partition is on main disk"""
         mockPwd.return_value = MagicMock(pw_uid=0)
         mockExecute.return_value = 'sda1,/\nsda2,'
@@ -141,3 +149,90 @@ class BootableDiskCreatorTests(TestCase):
         mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1024)
 
         self.assertEqual(self.obj.start(MagicMock(device='/dev/sdb1', image='image.iso')), None)
+
+class DependencyCheckerTests(TestCase):
+    """test class that inherits from unittest.TestCase class"""
+    def setUp(self):
+        """function to create new BootableDiskCreator object before each test"""
+        self.obj = DependencyChecker()
+
+    def tearDown(self):
+        """function to delete BootableDiskCreator object after test finishes"""
+        del self.obj
+
+    @mock.patch('shutil.which')
+    @mock.patch('sys.version_info')
+    def test_bad_python_version(self, mockVersion, mockWhich):
+        """tests Python version >= 3.5"""
+        sys.modules['PyQt5'] = MagicMock()
+        sys.modules['PyQt5'].Qt.PYQT_VERSION_STR = '5.11.3'
+        mockVersion.major = 3
+        mockVersion.minor = 3
+        mockWhich.side_effect = ['/bin/awk', '/bin/mkfs.fat', '/bin/lsblk', '/bin/mount']
+
+        with self.assertRaises(SystemExit) as err:
+            self.obj.main()
+        self.assertEqual(err.exception.code, 'Error: found Python 3.3, Python >= 3.5 required')
+
+    @mock.patch('shutil.which')
+    @mock.patch('sys.version_info')
+    def test_missing_pyqt(self, mockVersion, mockWhich):
+        """tests output if PyQt5 is missing"""
+        sys.modules['PyQt5'] = None
+        mockVersion.major = 3
+        mockVersion.minor = 5
+        mockWhich.side_effect = ['/bin/awk', '/bin/mkfs.fat', '/bin/lsblk', '/bin/mount']
+
+        with self.assertRaises(SystemExit) as err:
+            self.obj.main()
+        self.assertEqual(err.exception.code, 'Error: missing required dependency: PyQt5')
+
+    @mock.patch('shutil.which')
+    @mock.patch('sys.version_info')
+    def test_different_pyqt_version(self, mockVersion, mockWhich):
+        """tests output if different version of PyQt5 is found"""
+        sys.modules['PyQt5'] = MagicMock()
+        sys.modules['PyQt5'].Qt.PYQT_VERSION_STR = 'FAKE_VERSION'
+        mockVersion.major = 3
+        mockVersion.minor = 5
+        mockWhich.side_effect = ['/bin/awk', '/bin/mkfs.fat', '/bin/lsblk', '/bin/mount']
+
+        output = StringIO()
+        with redirect_stderr(output):
+            self.obj.main()
+        self.assertEqual(output.getvalue(), ('Warning: found PyQt5 FAKE_VERSION, this software '
+                                             'has only been tested with PyQt5 5.11.3\n'))
+
+    @mock.patch('shutil.which')
+    @mock.patch('sys.version_info')
+    def test_missing_bash_dependencies(self, mockVersion, mockWhich):
+        """tests output if missing bash dependencies are found"""
+        sys.modules['PyQt5'] = MagicMock()
+        sys.modules['PyQt5'].Qt.PYQT_VERSION_STR = '5.11.3'
+        mockVersion.major = 3
+        mockVersion.minor = 5
+        mockWhich.side_effect = [None, None, None, None]
+
+        with self.assertRaises(SystemExit) as err:
+            self.obj.main()
+        self.assertEqual(err.exception.code, ('Error: missing required dependency: awk\nError: '
+                                              'missing required dependency: mkfs.fat\nError: '
+                                              'missing required dependency: lsblk\nError: '
+                                              'missing required dependency: mount'))
+
+    @mock.patch('shutil.which')
+    @mock.patch('sys.version_info')
+    def test_missing_everything(self, mockVersion, mockWhich):
+        """tests output if all dependencies are missing"""
+        sys.modules['PyQt5'] = None
+        mockVersion.major = 3
+        mockVersion.minor = 5
+        mockWhich.side_effect = [None, None, None, None]
+
+        with self.assertRaises(SystemExit) as err:
+            self.obj.main()
+        self.assertEqual(err.exception.code, 'Error: missing required dependency: PyQt5\n'
+                                             'Error: missing required dependency: awk\nError: '
+                                             'missing required dependency: mkfs.fat\nError: '
+                                             'missing required dependency: lsblk\nError: '
+                                             'missing required dependency: mount')

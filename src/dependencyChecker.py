@@ -14,26 +14,32 @@ class DependencyChecker:
     """class to check BootableDiskCreator dependencies"""
     def __init__(self):
         """initializes member variables"""
-        self.bashDependencies = ['awk', 'mkfs.fat', 'lsblk']
+        self.bashDependencies = ['awk', 'mkfs.fat', 'lsblk', 'mount']
         self.PyQtVersion = '5.11.3'
+        self.errors = ''
+        self.PyQtInstall = False
 
     def main(self):
         """method to check if dependencies are satisfied"""
         if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
-            sys.exit('Error: found Python {}.{}, Python >= 3.5 required'
-                     .format(sys.version_info.major, sys.version_info.minor))
-
-        for i in self.bashDependencies:
-            if shutil.which(i) is None:
-                sys.exit('Error: missing required dependency: {}'.format(i))
+            self.errors += ('Error: found Python {}.{}, Python >= 3.5 required\n'
+                            .format(sys.version_info.major, sys.version_info.minor))
 
         try:
             import PyQt5
+            self.PyQtInstall = True
         except ImportError:
-            sys.exit('Error: missing required dependency: PyQt5')
+            self.errors += 'Error: missing required dependency: PyQt5\n'
 
-        from PyQt5 import Qt
+        if self.PyQtInstall:
+            from PyQt5 import Qt
+            if Qt.PYQT_VERSION_STR != self.PyQtVersion:
+                print('Warning: found PyQt5 {}, this software has only been tested with PyQt5 {}'
+                      .format(Qt.PYQT_VERSION_STR, self.PyQtVersion), file=sys.stderr)
 
-        if Qt.PYQT_VERSION_STR != self.PyQtVersion:
-            print('Warning: found PyQt5 {}, this software has only been tested with PyQt5 {}'
-                  .format(Qt.PYQT_VERSION_STR, self.PyQtVersion), file=sys.stderr)
+        for i in self.bashDependencies:
+            if shutil.which(i) is None:
+                self.errors += 'Error: missing required dependency: {}\n'.format(i)
+
+        if self.errors:
+            sys.exit(self.errors[:-1])
