@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Contains main function to create BootableDiskCreator object and call class main method
 
-File name: main.py
+File name: bdc
 Author: Adam Jenkins
 Date created: 9/17/2018
 Date last modified: 10/28/18
@@ -9,8 +9,8 @@ Python Version: 3.6.5
 """
 
 import argparse
-from bootableDiskCreator import BootableDiskCreator
-from dependencyChecker import DependencyChecker
+from bdc.bootableDiskCreator import BootableDiskCreator
+from bdc.dependencyChecker import DependencyChecker
 
 def main():
     """Sets up argument parser to parse command line arguments and calls class start method"""

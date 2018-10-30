@@ -1,9 +1,10 @@
 [run]
 include = 
-  src/bootableDiskCreator.py
-  src/dependencyChecker.py
+  src/bdc/bootableDiskCreator.py
+  src/bdc/dependencyChecker.py
 
 omit = 
-  src/tests.py
-  src/main.py
-  src/pyqt.py
+  src/bdc/tests.py
+  src/bdc/gui.py
+  src/bdc/bdc
+  src/bdc/bdc-gui

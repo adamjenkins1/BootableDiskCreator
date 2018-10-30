@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """Contians classes to implement multithreaded PyQt GUI for BootableDiskCreator class
 
-File name: pyqt.py
+File name: gui.py
 Author: Adam Jenkins
 Date created: 10/19/2018
-Date last modified: 10/28/18
+Date last modified: 10/29/18
 Python Version: 3.6.5
 """
+
 import sys
 from pathlib import Path
 from argparse import Namespace
 from time import sleep
 from threading import Lock
 from PyQt5 import QtCore, QtGui, QtWidgets
-from bootableDiskCreator import BootableDiskCreator
-from dependencyChecker import DependencyChecker
+from bdc.bootableDiskCreator import BootableDiskCreator
+from bdc.dependencyChecker import DependencyChecker
 
 class BDCThread(QtCore.QThread):
     """subclass of QThread to call the BootableDiskCreator start method"""
@@ -293,15 +294,3 @@ class GUI(QtWidgets.QMainWindow):
                                                                       'an ISO image first)')))
         self.refreshPartitionsButton.setText(_translate('MainWindow', 'Refresh Parititions'))
         self.goButton.setText(_translate('MainWindow', 'Go!'))
-
-def main():
-    """checks dependencies, creates global Qt application variable, GUI instance, and starts application"""
-    d = DependencyChecker()
-    d.main()
-    app = QtWidgets.QApplication([])
-    gui = GUI()
-    gui.show()
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()

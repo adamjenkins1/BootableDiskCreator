@@ -13,12 +13,12 @@ import os
 import threading
 import shutil
 import sys
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
-from bootableDiskCreator import BootableDiskCreator
-from dependencyChecker import DependencyChecker
+from bdc.bootableDiskCreator import BootableDiskCreator
+from bdc.dependencyChecker import DependencyChecker
 
 class BootableDiskCreatorTests(TestCase):
     """test class that inherits from unittest.TestCase class"""
@@ -55,7 +55,7 @@ class BootableDiskCreatorTests(TestCase):
         self.assertEqual(err.exception.code, 'Error: image \'image.iso\' does not exist')
 
     @mock.patch('os.path.isfile')
-    @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
+    @mock.patch('bdc.bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_partition_exists(self, mockPwd, mockExecute, mockFile):
         """tests if the given partition exists"""
@@ -69,7 +69,7 @@ class BootableDiskCreatorTests(TestCase):
     @mock.patch('os.statvfs')
     @mock.patch('os.path.getsize')
     @mock.patch('os.path.isfile')
-    @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
+    @mock.patch('bdc.bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_partition_too_small(self, mockPwd, mockExecute, mockFile, mockImageSize, mockStats):
         """tests if the given partition exists"""
@@ -86,7 +86,7 @@ class BootableDiskCreatorTests(TestCase):
     @mock.patch('os.statvfs')
     @mock.patch('os.path.getsize')
     @mock.patch('os.path.isfile')
-    @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
+    @mock.patch('bdc.bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_partition_mounted_as_parent_or_boot(self, mockPwd, mockExecute, mockFile,
                                                  mockImageSize, mockStats):
@@ -111,7 +111,7 @@ class BootableDiskCreatorTests(TestCase):
     @mock.patch('os.path.getsize')
     @mock.patch('builtins.input')
     @mock.patch('os.path.isfile')
-    @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
+    @mock.patch('bdc.bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_partition_on_primary_disk(self, mockPwd, mockExecute, mockFile, mockInput,
                                        mockImageSize, mockStats):
@@ -124,17 +124,18 @@ class BootableDiskCreatorTests(TestCase):
         mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1024)
 
         with self.assertRaises(SystemExit) as err:
-            self.obj.start(MagicMock(device='/dev/sda2', image='image.iso'))
+            with redirect_stdout(StringIO()):
+                self.obj.start(MagicMock(device='/dev/sda2', image='image.iso'))
         self.assertEqual(err.exception.code, 0)
 
     @mock.patch('os.statvfs')
     @mock.patch('os.path.getsize')
     @mock.patch('threading.Thread')
-    @mock.patch('bootableDiskCreator.BootableDiskCreator.copyImage')
+    @mock.patch('bdc.bootableDiskCreator.BootableDiskCreator.copyImage')
     @mock.patch('os.path.ismount')
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.isfile')
-    @mock.patch('bootableDiskCreator.BootableDiskCreator.executeCommand')
+    @mock.patch('bdc.bootableDiskCreator.BootableDiskCreator.executeCommand')
     @mock.patch('pwd.getpwnam')
     def test_create_bootable_drive(self, mockPwd, mockExecute, mockFile, mockDir,
                                    mockMount, mockCopy, mockThread, mockImageSize, mockStats):
