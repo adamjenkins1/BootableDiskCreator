@@ -9,5 +9,5 @@ install:
   - pip install pytest pytest-cov codecov
 
 script: 
-  - pytest --cov-config .coveragerc --cov=./src src/tests.py
+  - pytest --cov-config .coveragerc --cov=./src/bdc src/bdc/tests.py
   - codecov --token=$CODECOV_TOKEN
