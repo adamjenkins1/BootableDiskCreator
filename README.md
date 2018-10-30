@@ -1,4 +1,4 @@
-# Bootable Disk Creator [![Build Status](https://travis-ci.org/adamjenkins1/BootableDiskCreator.svg?branch=master)](https://travis-ci.org/adamjenkins1/BootableDiskCreator) [![codecov](https://codecov.io/gh/adamjenkins1/BootableDiskCreator/branch/master/graph/badge.svg)](https://codecov.io/gh/adamjenkins1/BootableDiskCreator)
+# Bootable Disk Creator [![Build Status](https://travis-ci.org/adamjenkins1/BootableDiskCreator.svg?branch=master)](https://travis-ci.org/adamjenkins1/BootableDiskCreator) [![codecov](https://codecov.io/gh/adamjenkins1/BootableDiskCreator/branch/master/graph/badge.svg)](https://codecov.io/gh/adamjenkins1/BootableDiskCreator) [![PyPI version](https://badge.fury.io/py/bdc.svg)](https://pypi.org/project/bdc/) [![pyversions](https://img.shields.io/badge/python-3.5%20%7C%203.6-blue.svg)](https://pypi.org/project/bdc/)
 
 This project consists of a multithreaded GUI and CLI to automate the process of creating bootable install media in Linux.
 
