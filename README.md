@@ -1,18 +1,27 @@
 # Bootable Disk Creator [![Build Status](https://travis-ci.org/adamjenkins1/BootableDiskCreator.svg?branch=master)](https://travis-ci.org/adamjenkins1/BootableDiskCreator) [![codecov](https://codecov.io/gh/adamjenkins1/BootableDiskCreator/branch/master/graph/badge.svg)](https://codecov.io/gh/adamjenkins1/BootableDiskCreator)
 
-This project consists of a multithreaded GUI and CLI to automate the process of creating bootable install media in Linux. **NOTE: this project is still in development and has not been released. You can download the source and run the GUI or CLI, but an actual package has not been created yet.**
+This project consists of a multithreaded GUI and CLI to automate the process of creating bootable install media in Linux.
 
-## Dependencies
-* Python >= 3.5
-* PyQt5 == 5.11.3
-* awk
-* mkfs.fat
-* lsblk
+## Installation
+### Pip
+Installing the `bdc` package is pretty straightforward using `pip`.
+```
+sudo pip3 install bdc
+```
+### Git
+To install this package directly from the repository:
+```
+git clone https://github.com/adamjenkins1/BootableDiskCreator.git
+cd BootableDiskCreator
+sudo make install
+make test
+```
+Once the package has been installed, make sure that `/usr/local/bin/` is in your `PATH`, as that is where `pip` installs the necessary executables.
 
 ## Usage
 Until an actual package has been created, you'll have to download the source. This project requires root privileges (can't format or mount anything otherwise) so make sure to execute either script with `sudo` or as root.  This is how the CLI is meant to be used:
 ```
-usage: main.py [-h] [--image-mount IMAGE_MOUNT] [--device-mount DEVICE_MOUNT] [--silent] image device
+usage: bdc [-h] [--image-mount IMAGE_MOUNT] [--device-mount DEVICE_MOUNT] [--silent] image device
 
 script to automate process of creating bootable install media
 
@@ -30,21 +39,20 @@ optional arguments:
 ```
 An example call would be:
 ```
-./main.py </path/to/image.iso> </dev/partition1>
+bdc </path/to/image.iso> </dev/partition1>
 ```
 
 The GUI doesn't take any command line arguments so you can run it like so:
 ```bash
-./pyqt.py
+bdc-gui
 ```
-You can run the unit tests with the Python unittest library
-```bash
-python3 -m unittest tests.py
-```
-Or with pytest
-```bash
-pytest tests.py
-```
+
+## Dependencies
+* Python >= 3.5
+* PyQt5 == 5.11.3
+* awk
+* mkfs.fat
+* lsblk
 
 ### How it works
 A lot of Python. This project uses Python for all of the heavy lifting and bash when Python isn't the right tool. Bash commands are executed from Python using `subprocess.Popen()`. This project will do the following to create the bootable drive:
