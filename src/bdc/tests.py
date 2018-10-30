@@ -13,7 +13,7 @@ import os
 import threading
 import shutil
 import sys
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
@@ -124,7 +124,8 @@ class BootableDiskCreatorTests(TestCase):
         mockStats.return_value = MagicMock(f_bsize=1024, f_blocks=1024)
 
         with self.assertRaises(SystemExit) as err:
-            self.obj.start(MagicMock(device='/dev/sda2', image='image.iso'))
+            with redirect_stdout(StringIO()):
+                self.obj.start(MagicMock(device='/dev/sda2', image='image.iso'))
         self.assertEqual(err.exception.code, 0)
 
     @mock.patch('os.statvfs')
