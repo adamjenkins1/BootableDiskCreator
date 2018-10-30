@@ -6,7 +6,7 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
      name='bdc',  
-     version='1.0.0',
+     version='1.0.2',
      scripts=['src/bdc/bdc', 'src/bdc/bdc-gui'] ,
      author='Adam Jenkins',
      author_email='adamjenkins1701@gmail.com',
