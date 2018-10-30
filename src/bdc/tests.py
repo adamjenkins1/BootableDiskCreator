@@ -17,8 +17,8 @@ from contextlib import redirect_stderr
 from io import StringIO
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
-from bootableDiskCreator import BootableDiskCreator
-from dependencyChecker import DependencyChecker
+from bdc.bootableDiskCreator import BootableDiskCreator
+from bdc.dependencyChecker import DependencyChecker
 
 class BootableDiskCreatorTests(TestCase):
     """test class that inherits from unittest.TestCase class"""

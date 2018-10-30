@@ -10,8 +10,8 @@ Python Version: 3.6.5
 
 import sys
 from PyQt5 import QtWidgets
-from dependencyChecker import DependencyChecker
-from gui import GUI
+from bdc.dependencyChecker import DependencyChecker
+from bdc.gui import GUI
 
 def main():
     """checks dependencies, creates global Qt application variable, GUI instance, and starts application"""

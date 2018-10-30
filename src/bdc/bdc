@@ -9,8 +9,8 @@ Python Version: 3.6.5
 """
 
 import argparse
-from bootableDiskCreator import BootableDiskCreator
-from dependencyChecker import DependencyChecker
+from bdc.bootableDiskCreator import BootableDiskCreator
+from bdc.dependencyChecker import DependencyChecker
 
 def main():
     """Sets up argument parser to parse command line arguments and calls class start method"""

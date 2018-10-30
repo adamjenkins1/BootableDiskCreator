@@ -14,8 +14,8 @@ from argparse import Namespace
 from time import sleep
 from threading import Lock
 from PyQt5 import QtCore, QtGui, QtWidgets
-from bootableDiskCreator import BootableDiskCreator
-from dependencyChecker import DependencyChecker
+from bdc.bootableDiskCreator import BootableDiskCreator
+from bdc.dependencyChecker import DependencyChecker
 
 class BDCThread(QtCore.QThread):
     """subclass of QThread to call the BootableDiskCreator start method"""
