@@ -19,7 +19,7 @@ make test
 Once the package has been installed, make sure that `/usr/local/bin/` is in your `PATH`, as that is where `pip` installs the necessary executables.
 
 ## Usage
-Until an actual package has been created, you'll have to download the source. This project requires root privileges (can't format or mount anything otherwise) so make sure to execute either script with `sudo` or as root.  This is how the CLI is meant to be used:
+This project requires root privileges (can't format or mount anything otherwise) so make sure to execute either script with `sudo` or as root.  This is how the CLI is meant to be used:
 ```
 usage: bdc [-h] [--image-mount IMAGE_MOUNT] [--device-mount DEVICE_MOUNT] [--silent] image device
 
