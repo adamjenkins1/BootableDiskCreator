@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 import setuptools
+import os
 
 with open('README.md', 'r') as f:
     longDescription = f.read()
 
+with open(os.path.join(os.path.dirname(__file__), 'src', 'bdc', '__init__.py')) as f:
+    exec(f.read())
+
 setuptools.setup(
-     name='bdc',  
-     version='1.0.4',
+     name=__name__,
+     version=__version__,
      scripts=['src/bdc/bdc', 'src/bdc/bdc-gui'] ,
-     author='Adam Jenkins',
+     author=__author__,
      author_email='adamjenkins1701@gmail.com',
      description='bootable install media creator',
      long_description=longDescription,
      long_description_content_type='text/markdown',
-     url='https://github.com/adamjenkins1/BootableDiskCreator',
+     url=__url__,
      packages=['bdc'],
      include_package_data=True,
      package_dir={'': 'src'},
